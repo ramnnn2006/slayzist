@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>College Assistant</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: monospace;
+      background: #f5f5f5;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 30px 16px;
+    }
+
+    h1 {
+      font-size: 1.2rem;
+      margin-bottom: 6px;
+      color: #111;
+    }
+
+    p.sub {
+      font-size: 0.8rem;
+      color: #666;
+      margin-bottom: 20px;
+    }
+
+    #chat {
+      width: 100%;
+      max-width: 680px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .msg {
+      padding: 10px 14px;
+      border-radius: 6px;
+      font-size: 0.88rem;
+      line-height: 1.5;
+      max-width: 90%;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .msg.user {
+      background: #1a1a1a;
+      color: #f0f0f0;
+      align-self: flex-end;
+    }
+
+    .msg.bot {
+      background: #fff;
+      color: #222;
+      border: 1px solid #ddd;
+      align-self: flex-start;
+    }
+
+    .msg.thinking {
+      background: #fff;
+      color: #999;
+      border: 1px dashed #ccc;
+      align-self: flex-start;
+      font-style: italic;
+    }
+
+    #form {
+      width: 100%;
+      max-width: 680px;
+      display: flex;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    #input {
+      flex: 1;
+      padding: 10px 12px;
+      font-family: monospace;
+      font-size: 0.88rem;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      outline: none;
+      background: #fff;
+    }
+
+    #input:focus {
+      border-color: #555;
+    }
+
+    button {
+      padding: 10px 18px;
+      background: #1a1a1a;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 0.88rem;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      background: #999;
+      cursor: not-allowed;
+    }
+
+    .quick-btns {
+      width: 100%;
+      max-width: 680px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 4px;
+    }
+
+    .quick-btns button {
+      background: #fff;
+      color: #333;
+      border: 1px solid #ccc;
+      font-size: 0.78rem;
+      padding: 5px 10px;
+      border-radius: 4px;
+    }
+
+    .quick-btns button:hover {
+      background: #f0f0f0;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>College Assistant</h1>
+  <p class="sub">Ask about attendance, marks, fees, library fines, or hostel charges.</p>
+
+  <div id="chat"></div>
+
+  <div class="quick-btns" id="quickbtns">
+    <button onclick="fillInput('I attended 72 out of 90 classes. Am I eligible for exams?')">Attendance</button>
+    <button onclick="fillInput('My marks are 85, 90, 78, 92 and 88. What is my grade?')">Result</button>
+    <button onclick="fillInput('Course fee is 50000 and I paid 35000. How much is pending?')">Fee Balance</button>
+    <button onclick="fillInput('I returned a book 8 days late. What is the fine?')">Library Fine</button>
+    <button onclick="fillInput('Hostel fee is 6000 per month and I stayed for 5 months.')">Hostel Fee</button>
+    <button onclick="fillInput('Show me details for student S002.')">Student Info</button>
+  </div>
+
+  <div id="form">
+    <input id="input" type="text" placeholder="Type your question..." autocomplete="off" />
+    <button id="sendbtn" onclick="sendMessage()">Send</button>
+    <button id="clearbtn" onclick="clearChat()">Clear</button>
+  </div>
+
+  <script>
+    const chat = document.getElementById("chat");
+    const input = document.getElementById("input");
+    const btn = document.getElementById("sendbtn");
+
+    input.addEventListener("keydown", e => {
+      if (e.key === "Enter") sendMessage();
+    });
+
+    function fillInput(text) {
+      input.value = text;
+      input.focus();
+    }
+
+    function clearChat() {
+      chat.innerHTML = "";
+      input.value = "";
+      input.focus();
+    }
+
+    function addMsg(text, type) {
+      const div = document.createElement("div");
+      div.className = "msg " + type;
+      div.textContent = text;
+      chat.appendChild(div);
+      div.scrollIntoView({ behavior: "smooth" });
+      return div;
+    }
+
+    async function sendMessage() {
+      const query = input.value.trim();
+      if (!query) return;
+
+      input.value = "";
+      btn.disabled = true;
+      addMsg(query, "user");
+      const thinking = addMsg("thinking...", "thinking");
+
+      try {
+        const res = await fetch("/ask", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query }),
+        });
+        const data = await res.json();
+        thinking.remove();
+        addMsg(data.response || data.error, "bot");
+      } catch (err) {
+        thinking.remove();
+        addMsg("something went wrong, check the terminal", "bot");
+      }
+
+      btn.disabled = false;
+      input.focus();
+    }
+  </script>
+
+</body>
+</html>
